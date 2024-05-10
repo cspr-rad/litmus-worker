@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "ESNext",
+    "lib": ["ES2018", "webworker"],
+    "outDir": "./dist",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["webpack-env"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
