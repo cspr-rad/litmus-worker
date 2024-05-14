@@ -1,10 +1,24 @@
 import {Block, ValidatorWeight} from './interfaces';
-import {broadcastState, sendMessage} from './utils';
+import {broadcastState, processInBatches, sendMessage} from './utils';
 import {dbBlockValidated, dbSaveWeights} from './db';
 import wasmInit, {BlockValidator} from 'litmus-wasm';
 
 // Initialize WebAssembly
 await wasmInit();
+
+type ValidatorWeightRecord = {
+    validator: string;
+    weight: string;
+};
+
+type ValidatorWeightsMap = {
+    [key: string]: string;
+};
+
+type ProcessContext = {
+    validatedCount: number;
+    totalBlocks: number;
+}
 
 // Log validation progress
 function logValidationProgress(validatedCount: number, totalBlocks: number): void {
@@ -25,51 +39,29 @@ async function saveValidatorWeights(block: Block): Promise<void> {
 }
 
 // Validate a single block
-async function validateBlock(currentBlock: Block, previousSwitchBlock: Block): Promise<void> {
-    const blockValidator = new BlockValidator(previousSwitchBlock);
-    blockValidator.validate(currentBlock);
-}
+async function validateBlock(block: Block) {
+    const eraId = block.header.era_id;
+    const validatorWeights = block.header.era_end.next_era_validator_weights
+        .reduce<ValidatorWeightsMap>((acc, cur: ValidatorWeightRecord) => {
+            acc[cur.validator] = cur.weight;
+            return acc;
+        }, {});
 
-// Validate a single block with the previous switch block and save to db
-async function validateBlockWithPrevious(
-    currentBlock: Block,
-    previousSwitchBlock: Block
-): Promise<void> {
-    await validateBlock(currentBlock, previousSwitchBlock);
-    await dbBlockValidated(currentBlock.header.era_id);
+    const blockValidator = new BlockValidator(BigInt(eraId), validatorWeights);
+    blockValidator.validate(block);
+    await dbBlockValidated(eraId);
 }
 
 // Validate a list of blocks
 export async function validateBlocks(blocks: Block[]): Promise<void> {
-    if (blocks.length < 2) {
-        console.log('Insufficient blocks to validate.');
-        return;
-    }
     try {
-        let validatedCount = 0;
-        let previousSwitchBlock = blocks[0];
-
-        // Save the first block as validated, as it's a trusted block
-        await dbBlockValidated(previousSwitchBlock.header.era_id);
-        validatedCount++;
-        logValidationProgress(validatedCount, blocks.length);
-
-        // Iterate over remaining blocks for validation
-        for (let i = 1; i < blocks.length; i++) {
-            const currentBlock = blocks[i];
-
-            // Validate the current block
-            await validateBlockWithPrevious(currentBlock, previousSwitchBlock);
-            validatedCount++;
-            logValidationProgress(validatedCount, blocks.length);
-
-            // Save validator weights for the current block
-            await saveValidatorWeights(currentBlock);
-
-            // Update previous switch block reference
-            previousSwitchBlock = currentBlock;
+        const context: ProcessContext = {
+            validatedCount: 0,
+            totalBlocks: blocks.length
+        };
+        for (const block of blocks) {
+            await processBlock(block, context);
         }
-
         console.log(`${blocks.length} blocks validated and updated in the database. Validator weights have been saved.`);
     } catch (error) {
         sendMessage('LM_MESSAGE', {
@@ -81,4 +73,12 @@ export async function validateBlocks(blocks: Block[]): Promise<void> {
             ${error instanceof Error ? error.message : String(error)}`
         );
     }
+}
+
+// Process a single block
+async function processBlock(block: Block, context: ProcessContext): Promise<void> {
+    await validateBlock(block);
+    await saveValidatorWeights(block);
+    context.validatedCount++;
+    logValidationProgress(context.validatedCount, context.totalBlocks);
 }

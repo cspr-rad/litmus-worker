@@ -53,11 +53,6 @@ export async function findLastValidated(era: number): Promise<SwitchBlockHeight 
 export async function dbBlockValidated(era: number): Promise<void> {
     try {
         const updated = await litmusDb.switch_blocks.update(era, {validated: 1});
-        if (updated) {
-            console.log(`Block for era ${era} marked as validated.`);
-        } else {
-            console.warn(`No block found for era ${era} to update.`);
-        }
     } catch (error) {
         sendMessage('LM_MESSAGE', {
             type: 'error',

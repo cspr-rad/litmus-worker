@@ -1,4 +1,4 @@
-import {BATCH_DELAY_MS, BATCH_SIZE, INDEXER_ERA_LIMIT, INDEXER_URL, RPC_URL} from './constants';
+import {FETCH_BATCH_DELAY_MS, FETCH_BATCH_SIZE, INDEXER_ERA_LIMIT, INDEXER_URL, RPC_URL} from './constants';
 import {BatchContext, Block, BlockResponse, EraHeight, RpcRequest, SwitchBlockHeight} from './interfaces';
 import {broadcastState, processInBatches, sendMessage} from './utils';
 
@@ -57,7 +57,7 @@ export async function getBlocks(switchBlocks: SwitchBlockHeight[]): Promise<Bloc
     const blocks: Block[] = [];
     const context: BatchContext = {blocks, total_blocks: switchBlocks.length};
     try {
-        await processInBatches(switchBlocks, BATCH_SIZE, BATCH_DELAY_MS, fetchBlock, context);
+        await processInBatches(switchBlocks, FETCH_BATCH_SIZE, FETCH_BATCH_DELAY_MS, fetchBlock, context);
         blocks.sort((a, b) => a.header.height - b.header.height);
         return blocks;
     } catch (error) {
