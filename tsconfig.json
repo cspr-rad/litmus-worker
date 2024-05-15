@@ -1,19 +1,24 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ESNext",
     "module": "ESNext",
     "lib": [
-      "ES2020",
+      "ESNext",
       "webworker",
-      "es2020.bigint"
     ],
     "outDir": "./dist",
     "moduleResolution": "node",
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "baseUrl": "./",
+    "paths": {
+      "*": ["node_modules/*"]
+    },
     "strict": true,
     "noImplicitAny": true,
     "typeRoots": ["./node_modules/@types"],
-    "types": ["webpack-env"]
+    "types": ["jest", "webpack-env"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
