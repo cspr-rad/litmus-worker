@@ -109,5 +109,12 @@ describe('Block Validation Services', () => {
                 text: 'Error during block validation.'
             });
         });
+
+        it('should update validation progress correctly when all blocks are processed', async () => {
+            const blocks = [sampleBlock, sampleBlock];
+            mockDbSaveWeights.mockResolvedValue();
+            await validateBlocks(blocks);
+            expect(broadcastState).toHaveBeenLastCalledWith({validateProgress: 100});
+        });
     });
 });
