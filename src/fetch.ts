@@ -1,4 +1,11 @@
-import {FETCH_BATCH_DELAY_MS, FETCH_BATCH_SIZE, INDEXER_ERA_LIMIT, INDEXER_URL, RPC_URL} from './constants';
+import {
+    FETCH_BATCH_DELAY_MS,
+    FETCH_BATCH_SIZE,
+    FETCH_RETRIES, FETCH_RETRY_DELAY_MS,
+    INDEXER_ERA_LIMIT,
+    INDEXER_URL,
+    RPC_URL
+} from './constants';
 import {BatchContext, Block, BlockResponse, EraHeight, RpcRequest, SwitchBlockHeight} from './interfaces';
 import {broadcastState, processInBatches, sendMessage} from './utils';
 
@@ -73,7 +80,7 @@ export async function getBlocks(switchBlocks: SwitchBlockHeight[]): Promise<Bloc
 }
 
 // Fetch a single block
-async function fetchBlock(switchBlock: SwitchBlockHeight, context: BatchContext): Promise<void> {
+export async function fetchBlock(switchBlock: SwitchBlockHeight, context: BatchContext): Promise<void> {
     const rpcRequest: RpcRequest = createRpcRequest('chain_get_block', {Height: switchBlock.block_height});
     try {
         const response = await fetchWithRetry(RPC_URL, rpcRequest);
@@ -106,18 +113,21 @@ function createRpcRequest(method: string, params: any): RpcRequest {
 }
 
 // Fetch with retry logic
-async function fetchWithRetry(url: string, request: RpcRequest, retries = 3): Promise<Response> {
-    for (let attempt = 0; attempt < retries; attempt++) {
+export async function fetchWithRetry(url: string, request: RpcRequest): Promise<Response> {
+    for (let attempt = 0; attempt < FETCH_RETRIES; attempt++) {
         const response = await fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(request)
         });
-
-        if (response.ok) return response;
-        if (attempt < retries - 1) await new Promise(res => setTimeout(res, 1000));
+        if (response.ok) {
+            return response;
+        }
+        if (attempt < FETCH_RETRIES - 1) {
+            await new Promise(res => setTimeout(res, FETCH_RETRY_DELAY_MS));
+        }
     }
-    throw new Error(`Failed to fetch after ${retries} attempts.`);
+    throw new Error(`Failed to fetch after ${FETCH_RETRIES} attempts.`);
 }
 
 // Validate block response

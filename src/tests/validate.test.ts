@@ -1,5 +1,5 @@
 import {Block} from '../interfaces';
-import {broadcastState, sendMessage} from '../utils';
+import {broadcastState} from '../utils';
 import {dbSaveWeights} from '../db';
 import wasmInit, {BlockValidator} from 'litmus-wasm';
 import {jest} from '@jest/globals';
