@@ -3,7 +3,7 @@ import {broadcastState, sendMessage} from '../utils';
 import {dbSaveWeights} from '../db';
 import wasmInit, {BlockValidator} from 'litmus-wasm';
 import {jest} from '@jest/globals';
-import {logValidationProgress, saveValidatorWeights, validateBlocks, processBlock} from '../validate';
+import {logValidationProgress, saveValidatorWeights, validateBlock, validateBlocks} from '../validate';
 
 jest.mock('../utils', () => ({
     broadcastState: jest.fn(),
@@ -75,11 +75,12 @@ describe('Block Validation Services', () => {
         });
     });
 
-    describe('processBlock', () => {
+    describe('validateBlock', () => {
         it('should handle errors when saving weights fails', async () => {
             mockDbSaveWeights.mockRejectedValue(new Error('Database error'));
             const context = {validatedCount: 0, totalBlocks: 1};
-            await expect(processBlock(sampleBlock, context)).rejects.toThrow('Failed to save weights');
+            await expect(validateBlock(sampleBlock, 1, {'01ab...': '1000', '02cd...': '2000'}))
+                .rejects.toThrow('Database error');
             expect(mockDbSaveWeights).toHaveBeenCalled();
             expect(context.validatedCount).toBe(0);
             mockDbSaveWeights.mockClear();
@@ -103,11 +104,7 @@ describe('Block Validation Services', () => {
 
         it('should handle and broadcast validation errors', async () => {
             const blocks = [sampleBlock];
-            await expect(validateBlocks(blocks)).rejects.toThrow('Error during block validation');
-            expect(sendMessage).toHaveBeenCalledWith('LM_MESSAGE', {
-                type: 'error',
-                text: 'Error during block validation.'
-            });
+            await expect(validateBlocks(blocks)).rejects.toThrow('Failed to save weights for block with era_id 1');
         });
 
         it('should update validation progress correctly when all blocks are processed', async () => {

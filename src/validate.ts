@@ -39,56 +39,43 @@ export async function saveValidatorWeights(block: Block): Promise<void> {
 }
 
 // Validate a single block
-export async function validateBlock(block: Block) {
-    const eraId = block.header.era_id;
-    const validatorWeights = block.header.era_end.next_era_validator_weights
-        .reduce<ValidatorWeightsMap>((acc, cur: ValidatorWeightRecord) => {
-            acc[cur.validator] = cur.weight;
-            return acc;
-        }, {});
-
+export async function validateBlock(currentBlock: Block, eraId: number, validatorWeights: Record<string, string>): Promise<void> {
     const blockValidator = new BlockValidator(BigInt(eraId), validatorWeights);
-    blockValidator.validate(block);
+    blockValidator.validate(currentBlock);
     await dbBlockValidated(eraId);
+    await saveValidatorWeights(currentBlock);
 }
 
 // Validate a list of blocks
 export async function validateBlocks(blocks: Block[]): Promise<void> {
+    // Save first block as validated as it is trusted
+    await dbBlockValidated(blocks[0].header.era_id);
+    await saveValidatorWeights(blocks[0]);
     const context: ProcessContext = {
-        validatedCount: 0,
+        validatedCount: 1,
         totalBlocks: blocks.length
     };
-    for (const block of blocks) {
+
+    for (let i = 1; i < blocks.length; i++) {
         try {
-            await processBlock(block, context);
+            const prevBlockValidatorWeights = blocks[i-1].header.era_end.next_era_validator_weights
+                .reduce<ValidatorWeightsMap>((acc, cur: ValidatorWeightRecord) => {
+                    acc[cur.validator] = cur.weight;
+                    return acc;
+                }, {});
+
+            await validateBlock(blocks[i], blocks[i].header.era_id, prevBlockValidatorWeights);
+            context.validatedCount++;
+            logValidationProgress(context.validatedCount, context.totalBlocks);
         } catch (error) {
             sendMessage('LM_MESSAGE', {
                 type: 'error',
-                text: 'Error during block validation.'
+                text: 'Error during validation of block with height ' + blocks[i].header.height
             },);
             throw new Error(
                 `Error during block validation:
                 ${error instanceof Error ? error.message : String(error)}`
             );
         }
-    }
-}
-
-// Process a single block
-export async function processBlock(block: Block, context: ProcessContext): Promise<void> {
-    try {
-        await validateBlock(block);
-    } catch (error) {
-        console.error('Validation failed:', error);
-        throw new Error(`Validation failed for block with era_id ${block.header.era_id}`);
-    }
-
-    try {
-        await saveValidatorWeights(block);
-        context.validatedCount++;
-        logValidationProgress(context.validatedCount, context.totalBlocks);
-    } catch (error) {
-        console.error('Saving weights failed:', error);
-        throw new Error(`Failed to save weights for block with era_id ${block.header.era_id}`);
     }
 }

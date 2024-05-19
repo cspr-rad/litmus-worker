@@ -29,17 +29,15 @@ async function main(trustedBlockHash: string): Promise<void> {
 
         // Determine the era to start from
         const lastValidated: SwitchBlockHeight | null = await findLastValidated(startEra);
-        const initialEra = lastValidated ? lastValidated.era + 1 : startEra;
-
+        const initialEra = lastValidated ? lastValidated.era : startEra;
         if (lastValidated) {
             console.log('Last validated era:', lastValidated);
         }
 
-        // Fetch switch blocks starting from the initial era
+        // Fetch switch blocks including the last validated era
         const switchBlocks: SwitchBlockHeight[] = await getSwitchBlocksHeights(initialEra);
         if (switchBlocks.length) {
             broadcastState({status: 'processing'});
-
             // Save switch blocks and validate them
             await saveSwitchBlocks(switchBlocks);
             const blocks = await getBlocks(switchBlocks);
