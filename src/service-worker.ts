@@ -16,7 +16,7 @@ export let currentState = {
 };
 
 // Validation process
-async function main(trustedBlockHash: string): Promise<void> {
+export async function main(trustedBlockHash: string): Promise<void> {
     try {
         // Fetch the starting era from the trusted block
         const startEra: number = await getTrustedBlock(trustedBlockHash).catch((error) => {
