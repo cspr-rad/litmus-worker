@@ -1,6 +1,6 @@
-import Dexie from "dexie";
-import {LitmusDatabase, SwitchBlockHeight, ValidatorWeight} from "./interfaces";
-import {sendMessage} from "./utils";
+import Dexie from 'dexie';
+import {LitmusDatabase, SwitchBlockHeight, ValidatorWeight} from './interfaces';
+import {sendMessage} from './utils';
 
 // Initialize the database
 const db = new Dexie('LitmusDatabase');
@@ -52,7 +52,7 @@ export async function findLastValidated(era: number): Promise<SwitchBlockHeight 
 // Mark a block as validated in the database
 export async function dbBlockValidated(era: number): Promise<void> {
     try {
-        const updated = await litmusDb.switch_blocks.update(era, {validated: 1});
+        await litmusDb.switch_blocks.update(era, {validated: 1});
     } catch (error) {
         sendMessage('LM_MESSAGE', {
             type: 'error',
