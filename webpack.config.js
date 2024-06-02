@@ -1,8 +1,8 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Dotenv from 'dotenv-webpack';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 export default {
     mode: 'production',
     entry: './src/service-worker.ts',
@@ -19,6 +19,9 @@ export default {
             },
         ],
     },
+    plugins: [
+        new Dotenv()
+    ],
     experiments: {
         outputModule: true,
         asyncWebAssembly: true,

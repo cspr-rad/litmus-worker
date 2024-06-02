@@ -1,5 +1,5 @@
-import {broadcastState} from "./utils";
-import {currentState} from "./service-worker";
+import {broadcastState} from './utils';
+import {currentState} from './service-worker';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -40,7 +40,7 @@ export function setListeners(main: any) {
         if (event.data.target === 'litmus-worker' && event.data.command === 'startFetching') {
             broadcastState({
                 trustedHash: event.data.trusted_block_hash,
-                status:'started',
+                status: 'started',
                 fetchProgress: 0,
                 validateProgress: 0
             });
